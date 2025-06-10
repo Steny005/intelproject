@@ -1,32 +1,35 @@
-# utils/feature_extraction.py
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import LabelEncoder
 
-import re
+def load_cicids2017_features():
+    # Load dataset from CSV with special characters in filename
+    filename = "Thursday-WorkingHours-Morning-WebAttacks.pcap_ISCX (1).csv"
+    df = pd.read_csv(filename)
 
-def extract_features(url):
-    features = []
+    # Drop rows with missing or infinite values
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df.dropna(inplace=True)
 
-    # Feature 1: Length of URL
-    features.append(len(url))
+    # Select important numeric features
+    selected_features = [
+        'Flow Duration', 'Total Fwd Packets', 'Total Backward Packets',
+        'Total Length of Fwd Packets', 'Total Length of Bwd Packets',
+        'Fwd Packet Length Mean', 'Bwd Packet Length Mean',
+        'Flow IAT Mean', 'Flow IAT Std',
+        'Fwd IAT Mean', 'Fwd IAT Std',
+        'Bwd IAT Mean', 'Bwd IAT Std',
+        'Fwd PSH Flags', 'Bwd PSH Flags',
+        'Fwd URG Flags', 'Bwd URG Flags',
+        'FIN Flag Count', 'SYN Flag Count', 'RST Flag Count',
+        'ACK Flag Count', 'URG Flag Count'
+    ]
 
-    # Feature 2: Count of '.'
-    features.append(url.count('.'))
+    # Filter the columns
+    X = df[selected_features].astype(float)
 
-    # Feature 3: Count of '-'
-    features.append(url.count('-'))
+    # Encode the labels
+    le = LabelEncoder()
+    y = le.fit_transform(df['Label'])  # e.g., Benign → 0, Web Attack → 1, etc.
 
-    # Feature 4: Count of '@'
-    features.append(url.count('@'))
-
-    # Feature 5: Count of digits
-    digits = sum(c.isdigit() for c in url)
-    features.append(digits)
-
-    # Feature 6: Has HTTPS
-    features.append(1 if "https" in url.lower() else 0)
-
-    # Feature 7: Count of suspicious words
-    suspicious_words = ['secure', 'account', 'login', 'update', 'verify', 'password']
-    count = sum(word in url.lower() for word in suspicious_words)
-    features.append(count)
-
-    return features
+    return X.values, y, le.classes_
